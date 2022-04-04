@@ -1,0 +1,161 @@
+const char MAIN_page[] PROGMEM = R"=====(
+<HTML>
+    <HEAD>
+        <link href="data:image/x-icon;base64,AAABAAEAEBAQAAEABAAoAQAAFgAAACgAAAAQAAAAIAAAAAEABAAAAAAAgAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAP//AAgABwD/AAAA/wDhAAgA/wAAlf8AAP8AABoA/wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIhhInNEAAAIhmEiczRAAIiGYRdzNEAAiGYRF3MzRAWIZhEXczNET//wAA+B8AAPvfAAD73wAA+98AAPvfAADzzwAA9+8AAPfvAADn5wAA4AcAAOAHAADAAwAAgAMAAIABAAAAAAAA" rel="icon" type="image/x-icon" />
+        <TITLE>{{NAME}} Config</TITLE>
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+        <style>
+            body {
+                font-family: Helvetica, sans-serif;
+            }
+            h1 {
+                text-align: center
+            }
+            table, th, td {
+                border: 1px solid black;
+            }
+
+            .tab-col {
+                border: 1px solid black;
+                padding: 10px;
+            }
+    
+            .row {
+                margin-top: 10px;
+                margin-bottom: 10px;
+                padding-top: 10px;
+                padding-bottom: 10px;
+            }
+
+            .tab-row {
+                margin: 0px;
+                padding: 0px;
+            }
+    
+            .cell_div {
+                margin: 5px;
+                padding: 5px;
+            }
+        </style>
+    </HEAD>
+    
+    <BODY>
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col">
+                    <h1>{{NAME}} Config</h1>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col">
+                    <div class="container-fluid">
+                        <div class="row">
+                            <div class="col col-sm-2">
+                                Light State {{LIGHT_STATE}}
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col col-sm-2">
+                                on_seconds_since_midnight {{ON_SECONDS_SET}}
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col col-sm-2">
+                                off_seconds_since_midnight {{OFF_SECONDS_SET}}
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col col-sm-2">
+                                curr_seconds_since_midnight {{CURR_SECONDS}}
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col col-sm-2">
+                                prev_seconds_since_midnight {{PREV_SECONDS_SET}}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col">
+                    <form action="/update_colors" method="POST">
+                        <div class="container-fluid">
+                            <div class="row">
+                                <label for="converter" class="col-sm-2 col-form-label">Converter LED: </label>
+                                <div class="col col-sm-2">
+                                    <input type="color" id="converter" name="converter" value="#{{LED_0}}" class="form-control">
+                                </div>
+                            </div>
+                            <div class="row tab-row">
+                                <div class="col tab-col">
+                                    <input type="color" id="led_seven" name="led_seven" value="#{{LED_7}}" class="form-control">
+                                </div>
+                                <div class="col tab-col">
+                                    <input type="color" id="led_six" name="led_six" value="#{{LED_6}}" class="form-control">
+                                </div>
+                                <div class="col tab-col">
+                                    <input type="color" id="led_one" name="led_one" value="#{{LED_1}}" class="form-control">
+                                </div>
+                            </div>
+                            <div class="row tab-row">
+                                <div class="col tab-col">
+                                    <input type="color" id="led_eight" name="led_eight" value="#{{LED_8}}" class="form-control">
+                                </div>
+                                <div class="col tab-col">
+                                    <input type="color" id="led_five" name="led_five" value="#{{LED_5}}" class="form-control">
+                                </div>
+                                <div class="col tab-col">
+                                    <input type="color" id="led_two" name="led_two" value="#{{LED_2}}" class="form-control">
+                                </div>
+                            </div>
+                            <div class="row tab-row">
+                                <div class="col tab-col">
+                                    <input type="color" id="led_nine" name="led_nine" value="#{{LED_9}}" class="form-control">
+                                </div>
+                                <div class="col tab-col">
+                                    <input type="color" id="led_four" name="led_four" value="#{{LED_4}}" class="form-control">
+                                </div>
+                                <div class="col tab-col">
+                                    <input type="color" id="led_three" name="led_three" value="#{{LED_3}}" class="form-control">
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col">
+                                    <input type="submit" value="Update Colors" class="form-control">
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col">
+                    <form action="/update_timer" method="POST">
+                        <div class="container-fluid">
+                            <div class="row">
+                                <label for="on_time" class="col-sm-2 col-form-label">On Time: </label>
+                                <div class="col col-sm-2">
+                                    <input type="time" id="on_time" name="on_time" value="{{ON_TIME}}" step="300" class="form-control">
+                                </div>
+                            </div>
+                            <div class="row">
+                                <label for="off_time" class="col-sm-2 col-form-label">Off Time: </label>
+                                <div class="col col-sm-2">
+                                    <input type="time" id="off_time" name="off_time" value="{{OFF_TIME}}" step="300" class="form-control">
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col">
+                                    <input type="submit" value="Update Timer" class="form-control">
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </BODY>    
+</HTML>
+)=====";
