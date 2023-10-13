@@ -24,6 +24,7 @@
 
 // Which pin on the Arduino is connected to the NeoPixels?
 #define PIN         D1 // On Trinket or Gemma, suggest changing this to 1
+#define STATUS_LED_PN D4
 #define RESET_PIN   0
 
 #define BUTTON_PRESS_MIN_LENGTH_MS 5000
@@ -70,7 +71,6 @@ Adafruit_NeoPixel pixels(NUMPIXELS, PIN, NEO_GRB + NEO_KHZ800);
 
 
 int default_color_array[][3] = {
-    {20, 0, 0},
     {  0, 150,   0}, {150,   0,   0}, {  0,   0, 150},
     {150, 150,   0}, {150,   0, 105}, {  0, 150, 150},
     {250,  50, 250}, { 50, 250, 250}, {250, 250,  50}
@@ -79,7 +79,6 @@ int default_on_hour = 6, default_on_minutes = 0;
 int default_off_hour = 20, default_off_minutes = 0;
 
 int color_array[][3] = {
-    {20, 0, 0},
     {  0, 150,   0}, {150,   0,   0}, {  0,   0, 150},
     {150, 150,   0}, {150,   0, 105}, {  0, 150, 150},
     {250,  50, 250}, { 50, 250, 250}, {250, 250,  50}
@@ -93,7 +92,6 @@ int curr_seconds_since_midnight = -1, prev_seconds_since_midnight = -1;
 
 
 String color_form_names[] = {
-    "converter",
     "led_one",
     "led_two",
     "led_three",
@@ -376,8 +374,6 @@ String indexKeyProcessor(const String& key)
         return color_to_hex_string(7);
     } else if (key == "LED_8") {
         return color_to_hex_string(8);
-    } else if (key == "LED_9") {
-        return color_to_hex_string(9);
     } else if (key == "ON_TIME") {
         return time_to_string(on_hour, on_minutes);
     } else if (key == "OFF_TIME") {
@@ -486,11 +482,18 @@ void handle_update_timer() {
     Serial.println(on_hour);
     Serial.print("on_minutes: ");
     Serial.println(on_minutes);
+    Serial.print("on_seconds_since_midnight: ");
+    Serial.println(seconds_since_midnight(on_hour, on_minutes));
     Serial.print("off_hour: ");
     Serial.println(off_hour);
     Serial.print("off_minutes: ");
     Serial.println(off_minutes);
+    Serial.print("off_seconds_since_midnight: ");
+    Serial.println(seconds_since_midnight(off_hour, off_minutes));
     
+    on_seconds_since_midnight = seconds_since_midnight(on_hour, on_minutes);
+    off_seconds_since_midnight = seconds_since_midnight(off_hour, off_minutes);
+
     save_led_values();
 
     // refresh_page_buffer();
@@ -549,6 +552,9 @@ void handleNotFound(){
 void setup() {
 
     pinMode(RESET_PIN, INPUT_PULLUP);
+    pinMode(STATUS_LED_PN, OUTPUT);
+
+    digitalWrite(STATUS_LED_PN, LOW);
 
     EEPROM.begin(EEPROM_SIZE);
     
@@ -631,6 +637,8 @@ void setup() {
     pixels.begin(); // INITIALIZE NeoPixel strip object (REQUIRED)
 
     timeClient.begin();
+
+    digitalWrite(STATUS_LED_PN, HIGH);
 }
 
 void loop() {
@@ -649,6 +657,8 @@ void loop() {
 
     if( curr_seconds_since_midnight != prev_seconds_since_midnight ) {
         prev_seconds_since_midnight = curr_seconds_since_midnight;
+
+        digitalWrite(STATUS_LED_PN, LOW);
 
         Serial.print("leds_on: ");
         Serial.println(leds_on);
@@ -692,6 +702,10 @@ void loop() {
         Serial.println(leds_on);
         Serial.print("update_colors: ");
         Serial.println(update_colors);
+        Serial.print("IP address: ");
+        Serial.println(WiFi.localIP());  //IP address assigned to your ESP
+
+        digitalWrite(STATUS_LED_PN, HIGH);
 
     }
 

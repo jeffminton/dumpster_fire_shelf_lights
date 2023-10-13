@@ -81,43 +81,37 @@ const char MAIN_page[] PROGMEM = R"=====(
                 <div class="col">
                     <form action="/update_colors" method="POST">
                         <div class="container-fluid">
-                            <div class="row">
-                                <label for="converter" class="col-sm-2 col-form-label">Converter LED: </label>
-                                <div class="col col-sm-2">
-                                    <input type="color" id="converter" name="converter" value="#{{LED_0}}" class="form-control">
+                            <div class="row tab-row">
+                                <div class="col tab-col">
+                                    <input type="color" id="led_seven" name="led_seven" value="#{{LED_6}}" class="form-control">
+                                </div>
+                                <div class="col tab-col">
+                                    <input type="color" id="led_six" name="led_six" value="#{{LED_5}}" class="form-control">
+                                </div>
+                                <div class="col tab-col">
+                                    <input type="color" id="led_one" name="led_one" value="#{{LED_0}}" class="form-control">
                                 </div>
                             </div>
                             <div class="row tab-row">
                                 <div class="col tab-col">
-                                    <input type="color" id="led_seven" name="led_seven" value="#{{LED_7}}" class="form-control">
+                                    <input type="color" id="led_eight" name="led_eight" value="#{{LED_7}}" class="form-control">
                                 </div>
                                 <div class="col tab-col">
-                                    <input type="color" id="led_six" name="led_six" value="#{{LED_6}}" class="form-control">
+                                    <input type="color" id="led_five" name="led_five" value="#{{LED_4}}" class="form-control">
                                 </div>
                                 <div class="col tab-col">
-                                    <input type="color" id="led_one" name="led_one" value="#{{LED_1}}" class="form-control">
-                                </div>
-                            </div>
-                            <div class="row tab-row">
-                                <div class="col tab-col">
-                                    <input type="color" id="led_eight" name="led_eight" value="#{{LED_8}}" class="form-control">
-                                </div>
-                                <div class="col tab-col">
-                                    <input type="color" id="led_five" name="led_five" value="#{{LED_5}}" class="form-control">
-                                </div>
-                                <div class="col tab-col">
-                                    <input type="color" id="led_two" name="led_two" value="#{{LED_2}}" class="form-control">
+                                    <input type="color" id="led_two" name="led_two" value="#{{LED_1}}" class="form-control">
                                 </div>
                             </div>
                             <div class="row tab-row">
                                 <div class="col tab-col">
-                                    <input type="color" id="led_nine" name="led_nine" value="#{{LED_9}}" class="form-control">
+                                    <input type="color" id="led_nine" name="led_nine" value="#{{LED_8}}" class="form-control">
                                 </div>
                                 <div class="col tab-col">
-                                    <input type="color" id="led_four" name="led_four" value="#{{LED_4}}" class="form-control">
+                                    <input type="color" id="led_four" name="led_four" value="#{{LED_3}}" class="form-control">
                                 </div>
                                 <div class="col tab-col">
-                                    <input type="color" id="led_three" name="led_three" value="#{{LED_3}}" class="form-control">
+                                    <input type="color" id="led_three" name="led_three" value="#{{LED_2}}" class="form-control">
                                 </div>
                             </div>
                             
