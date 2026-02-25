@@ -1,7 +1,6 @@
 // NeoPixel Ring simple sketch (c) 2013 Shae Erisson
 // Released under the GPLv3 license to match the rest of the
 // Adafruit NeoPixel library
-
 #include <ESP8266WiFi.h>
 #include <WiFiClient.h>
 #include <ESP8266WebServer.h>
@@ -9,15 +8,12 @@
 #include <NTPClient.h>
 #include <WiFiUdp.h>
 #include "EspHtmlTemplateProcessor.h"
-
-
-
 // include library to read and write from flash memory
 #include <EEPROM.h>
-
 #include "index.h" //Our HTML webpage contents
-
 #include <Adafruit_NeoPixel.h>
+#include <uri/UriBraces.h>
+
 #ifdef __AVR__
  #include <avr/power.h> // Required for 16 MHz Adafruit Trinket
 #endif
@@ -28,7 +24,6 @@
 #define RESET_PIN   0
 
 #define BUTTON_PRESS_MIN_LENGTH_MS 5000
-
 
 // How many NeoPixels are attached to the Arduino?
 #define NUMPIXELS 9 // Popular NeoPixel ring size
@@ -77,6 +72,7 @@ int default_color_array[][3] = {
 };
 int default_on_hour = 6, default_on_minutes = 0;
 int default_off_hour = 20, default_off_minutes = 0;
+int default_use_schedule = 1;
 
 int color_array[][3] = {
     {  0, 150,   0}, {150,   0,   0}, {  0,   0, 150},
@@ -89,9 +85,11 @@ int off_hour = -1, off_minutes = -1;
 int curr_hour = -1, curr_minutes = -1;
 int on_seconds_since_midnight = -1, off_seconds_since_midnight = -1;
 int curr_seconds_since_midnight = -1, prev_seconds_since_midnight = -1;
+int use_schedule = -1;
 
 
 String color_form_names[] = {
+    "led_zero",
     "led_one",
     "led_two",
     "led_three",
@@ -99,8 +97,7 @@ String color_form_names[] = {
     "led_five",
     "led_six",
     "led_seven",
-    "led_eight",
-    "led_nine"
+    "led_eight"
 };
 
 
@@ -109,7 +106,7 @@ char page_buffer[sizeof(MAIN_page)];
 bool update_colors = true;
 bool leds_on = false;
 bool button_is_pressed = false;
-
+bool identify = false;
 
 int seconds_since_midnight(int hour, int minute) {
     return (hour * 60 * 60) + (minute * 60);
@@ -119,16 +116,11 @@ int seconds_since_midnight(int hour, int minute) {
 void save_led_values() {
     int address = start_eeprom_address;
 
-    Serial.println("Save To Flash");
     for ( int i = 0; i < (int) (sizeof(color_form_names) / sizeof(String)); i++ ){
         for( int j = 0; j < 3; j++) {
             EEPROM.write(address, color_array[i][j]);
-            Serial.print("b: ");
-            Serial.print(color_array[i][j]);
-            Serial.print(", ");
             address++;
         }
-        Serial.println("");
     }
 
     EEPROM.write(address, on_hour);
@@ -139,15 +131,8 @@ void save_led_values() {
     address++;
     EEPROM.write(address, off_minutes);
     address++;
-
-    Serial.print("on_hour: ");
-    Serial.println(on_hour);
-    Serial.print("on_minutes: ");
-    Serial.println(on_minutes);
-    Serial.print("off_hour: ");
-    Serial.println(off_hour);
-    Serial.print("off_minutes: ");
-    Serial.println(off_minutes);
+    EEPROM.write(address, use_schedule);
+    address++;
 
     EEPROM.commit();
 }
@@ -157,16 +142,11 @@ void save_led_values() {
 void load_led_values() {
     int address = start_eeprom_address;
 
-    Serial.println("Load From Flash");
     for ( int i = 0; i < (int) (sizeof(color_form_names) / sizeof(String)); i++ ){
         for( int j = 0; j < 3; j++) {
             color_array[i][j] = EEPROM.read(address);
-            // Serial.print("b: ");
-            // Serial.print(color_array[i][j]);
-            // Serial.print(", ");
             address++;
         }
-        // Serial.println("");
     }
 
     on_hour = EEPROM.read(address);
@@ -177,18 +157,15 @@ void load_led_values() {
     address++;
     off_minutes = EEPROM.read(address);
     address++;
+    use_schedule = EEPROM.read(address);
+    if(use_schedule > 1) {
+        use_schedule = default_use_schedule;
+    }
+    address++;
 
     on_seconds_since_midnight = seconds_since_midnight(on_hour, on_minutes);
     off_seconds_since_midnight = seconds_since_midnight(off_hour, off_minutes);
 
-    // Serial.print("on_hour: ");
-    // Serial.println(on_hour);
-    // Serial.print("on_minutes: ");
-    // Serial.println(on_minutes);
-    // Serial.print("off_hour: ");
-    // Serial.println(off_hour);
-    // Serial.print("off_minutes: ");
-    // Serial.println(off_minutes);
 }
 
 
@@ -204,6 +181,7 @@ void reset_saved_to_defaults() {
     on_minutes = default_on_minutes;
     off_hour = default_off_hour;
     off_minutes = default_off_minutes;
+    use_schedule = default_use_schedule;
 
     update_colors = true;
     save_led_values();
@@ -217,27 +195,13 @@ boolean button_pressed( int button_pin, int desired_value ) {
 
     int pin_value = digitalRead( button_pin );
 
-    // Serial.println("Pressed Button");
-
     while( (millis() - start_time) < (unsigned long) BUTTON_PRESS_MIN_LENGTH_MS ) {
         pin_value = digitalRead( button_pin );
         yield();
         if( pin_value != desired_value ) {
-            // Serial.println( "button_pressed: button not pressed" );
             return false;
         }
     }
-
-    // Serial.print("Time since func start (millis() - start_time): ");
-    // Serial.print((millis() - start_time));
-    // Serial.print( "  digital value: " );
-    // Serial.print(digitalRead( button_pin ));
-    // Serial.print( "  pin value: " );
-    // Serial.print(pin_value);
-    // Serial.print( "  desired value: " );
-    // Serial.print(desired_value);
-    // Serial.print( "  button_pressed: " );
-    // Serial.println(pin_value == desired_value);
 
     return pin_value == desired_value;
 } 
@@ -248,9 +212,6 @@ boolean button_pressed( int button_pin, int desired_value ) {
 void check_reset_button_pressed() {
     button_is_pressed = button_pressed( RESET_PIN, LOW);
     if(button_is_pressed) {
-        // Serial.print("button_is_pressed == false. ");
-        // Serial.print("button press state. ");
-        // Serial.println(button_is_pressed);
         reset_saved_to_defaults();
     }
     while(button_is_pressed == true) {
@@ -262,56 +223,56 @@ void check_reset_button_pressed() {
 
 
 char* get_shelf_name(){
-    String test_mac_string = String("60:01:94:03:80:fd");
+    String test_mac_string = String("b4:e6:2d:78:20:48");
     test_mac_string.toLowerCase();
     if( mac_address == test_mac_string) {
         return (char*)"Dumpster Shelf 1";
     }
     
-    test_mac_string = String("60:01:94:01:21:cf");
+    test_mac_string = String("a4:cf:12:b9:26:9b");
     test_mac_string.toLowerCase();
     if( mac_address == test_mac_string) {
         return (char*)"Dumpster Shelf 2";
     }
     
-    test_mac_string = String("5c:cf:7f:23:f6:5b");
+    test_mac_string = String("bc:dd:c2:47:67:47");
     test_mac_string.toLowerCase();
     if( mac_address == test_mac_string) {
         return (char*)"Dumpster Shelf 3";
     }
 
-    test_mac_string = String("5c:cf:7f:23:fe:5c");
+    test_mac_string = String("a4:cf:12:b9:26:7b");
     test_mac_string.toLowerCase();
     if( mac_address == test_mac_string) {
         return (char*)"Dumpster Shelf 4";
     }
 
-    return (char*)"unknown";
+    return (char*)"Shelf Name Not Found";
 }
 
 
 
 
 char* get_host_name(){
-    String test_mac_string = String("60:01:94:03:80:fd");
+    String test_mac_string = String("b4:e6:2d:78:20:48");
     test_mac_string.toLowerCase();
     if( mac_address == test_mac_string) {
         return (char*)"dumpster_shelf_1";
     }
     
-    test_mac_string = String("60:01:94:01:21:cf");
+    test_mac_string = String("a4:cf:12:b9:26:9b");
     test_mac_string.toLowerCase();
     if( mac_address == test_mac_string) {
         return (char*)"dumpster_shelf_2";
     }
-
-    test_mac_string = String("5c:cf:7f:23:f6:5b");
+    
+    test_mac_string = String("bc:dd:c2:47:67:47");
     test_mac_string.toLowerCase();
     if( mac_address == test_mac_string) {
         return (char*)"dumpster_shelf_3";
     }
 
-    test_mac_string = String("5c:cf:7f:23:fe:5c");
+    test_mac_string = String("a4:cf:12:b9:26:7b");
     test_mac_string.toLowerCase();
     if( mac_address == test_mac_string) {
         return (char*)"dumpster_shelf_4";
@@ -378,6 +339,17 @@ String indexKeyProcessor(const String& key)
         return time_to_string(on_hour, on_minutes);
     } else if (key == "OFF_TIME") {
         return time_to_string(off_hour, off_minutes);
+    } else if (key == "USE_SCHEDULE") {
+        // return use_schedule == 1 ? "value=\"checked\"" : "";
+        // return use_schedule == 1 ? "value=\"\" checked=\"\"" : "";
+        return use_schedule == 1 ? "checked" : "";
+    } else if (key == "USE_SCHEDULE_DEBUG") {
+        // return use_schedule == 1 ? "value=\"checked\"" : "";
+        return String(use_schedule).c_str();
+    } else if (key == "HOST_NAME") {
+        return host_name;
+    } else if (key == "MAC_ADDRESS") {
+        return mac_address;
     }
   return "Key not found";
 }
@@ -385,69 +357,47 @@ String indexKeyProcessor(const String& key)
 
 
 
-//===============================================================
-// This routine is executed when you open its IP in browser
-//===============================================================
-// void refresh_page_buffer() {
-//     for ( int i = 0; i < (int) (sizeof(color_form_names) / sizeof(String)); i++ ){
-//         Serial.print(color_form_names[i]);
-
-//         Serial.print(": red: ");
-//         Serial.print(color_array[i][0]);
-
-//         Serial.print(", green: ");
-//         Serial.print(color_array[i][1]);
-
-//         Serial.print(", blue: ");
-//         Serial.println(color_array[i][2]);
-//     }
-//     sprintf(page_buffer, MAIN_page, 
-//         board_name, board_name, leds_on,
-//         on_seconds_since_midnight, off_seconds_since_midnight,
-//         curr_seconds_since_midnight, prev_seconds_since_midnight,
-//         color_array[0][0], color_array[0][1], color_array[0][2],
-//         color_array[7][0], color_array[7][1], color_array[7][2],
-//         color_array[6][0], color_array[6][1], color_array[6][2],
-//         color_array[1][0], color_array[1][1], color_array[1][2],
-//         color_array[8][0], color_array[8][1], color_array[8][2],
-//         color_array[5][0], color_array[5][1], color_array[5][2],
-//         color_array[2][0], color_array[2][1], color_array[2][2],
-//         color_array[9][0], color_array[9][1], color_array[9][2],
-//         color_array[4][0], color_array[4][1], color_array[4][2],
-//         color_array[3][0], color_array[3][1], color_array[3][2],
-//         on_hour, on_minutes, off_hour, off_minutes
-//     );
-
-
-// }
-
-
-
-
 void handleRoot() {
     yield();
-    // String s = MAIN_page; //Read HTML contents
-    // char s[] = MAIN_page;
-
-    
-    // refresh_page_buffer();
-    // server.send(200, "text/html", page_buffer); //Send web page
     templateProcessor.processAndSend("/index.html", indexKeyProcessor);
 }
 
 
+// Hex string to long conversion
 int hstol(String recv){
     char c[recv.length() + 1];
     recv.toCharArray(c, recv.length() + 1);
     return (int) strtol(c, NULL, 16); 
 }
 
+// Decimal string to long conversion
 int dstol(String recv){
     char c[recv.length() + 1];
     recv.toCharArray(c, recv.length() + 1);
     return (int) strtol(c, NULL, 10); 
 }
 
+
+
+void identify_flash() {
+    //Flash all the pixel red for 1 second then off for 1 second 10 times
+    identify = false;
+    for(int i=0; i<5; i++) {
+        yield();
+        for(int j=0; j<pixels.numPixels(); j++) {
+            pixels.setPixelColor(j, pixels.Color(150, 0, 0)); // Red color
+        }
+        pixels.show();
+        delay(500);
+
+        pixels.clear();
+        pixels.show();
+        delay(500);
+    }
+
+    leds_on = true;
+    update_colors = true;
+}
 
 
 
@@ -458,48 +408,19 @@ void handle_update_timer() {
     
     on_time = server.arg("on_time");
     off_time = server.arg("off_time");
-
-    Serial.print("on_time: ");
-    Serial.println(on_time);
-    Serial.print("off_time: ");
-    Serial.println(off_time);
-
-    Serial.print("on_hour s: ");
-    Serial.println(on_time.substring(0, 2));
-    Serial.print("on_minutes s: ");
-    Serial.println(on_time.substring(3));
-    Serial.print("off_hour s: ");
-    Serial.println(off_time.substring(0, 2));
-    Serial.print("off_minutes s: ");
-    Serial.println(off_time.substring(3));
+    use_schedule = server.hasArg("use_schedule") ? 1 : 0;
 
     on_hour = dstol(on_time.substring(0, 2));
     on_minutes = dstol(on_time.substring(3));
     off_hour = dstol(off_time.substring(0, 2));
     off_minutes = dstol(off_time.substring(3));
-
-    Serial.print("on_hour: ");
-    Serial.println(on_hour);
-    Serial.print("on_minutes: ");
-    Serial.println(on_minutes);
-    Serial.print("on_seconds_since_midnight: ");
-    Serial.println(seconds_since_midnight(on_hour, on_minutes));
-    Serial.print("off_hour: ");
-    Serial.println(off_hour);
-    Serial.print("off_minutes: ");
-    Serial.println(off_minutes);
-    Serial.print("off_seconds_since_midnight: ");
-    Serial.println(seconds_since_midnight(off_hour, off_minutes));
     
     on_seconds_since_midnight = seconds_since_midnight(on_hour, on_minutes);
     off_seconds_since_midnight = seconds_since_midnight(off_hour, off_minutes);
 
     save_led_values();
 
-    // refresh_page_buffer();
-    // server.send(200, "text/html", page_buffer); //Send web page
     templateProcessor.processAndSend("/index.html", indexKeyProcessor);
-
 }
 
 
@@ -514,34 +435,70 @@ void handle_update_colors() {
         arg_name = color_form_names[i];
         if( server.hasArg(arg_name) ){
             hex_color_string = server.arg(arg_name);
-            Serial.print("Hex Color: ");
-            Serial.print(hex_color_string);
 
             red = hstol(hex_color_string.substring(1, 3));
-            Serial.print(", red: ");
-            Serial.print(red);
-
+            
             green = hstol(hex_color_string.substring(3, 5));
-            Serial.print(", green: ");
-            Serial.print(green);
 
             blue = hstol(hex_color_string.substring(5, 7));
-            Serial.print(", blue: ");
-            Serial.println(blue);
 
             color_array[i][0] = red;
             color_array[i][1] = green;
             color_array[i][2] = blue;
-
         }
     }
 
     update_colors = true;
     save_led_values();
 
-    // refresh_page_buffer();
-    // server.send(200, "text/html", page_buffer); //Send web page
     templateProcessor.processAndSend("/index.html", indexKeyProcessor);
+}
+
+
+void handle_update_color(int led_index, String hex_color_string) {
+    yield();
+    String red_str, green_str, blue_str;
+    long red, green, blue;
+
+    if( server.hasArg("color") ){
+
+        red = hstol(hex_color_string.substring(1, 3));
+        
+        green = hstol(hex_color_string.substring(3, 5));
+
+        blue = hstol(hex_color_string.substring(5, 7));
+
+        color_array[led_index][0] = red;
+        color_array[led_index][1] = green;
+        color_array[led_index][2] = blue;
+    }
+
+    update_colors = true;
+    save_led_values();
+
+    server.send(200, "text/plain", hex_color_string);
+}
+
+
+void handle_leds_on() {
+    yield();
+    leds_on = true;
+    update_colors = true;
+
+    server.send(200, "text/plain", "1");
+}
+
+void handle_leds_off() {
+    yield();
+    leds_on = false;
+    update_colors = true;
+
+    server.send(200, "text/plain", "0");
+}
+
+void handle_identify() {
+    identify = true;
+    server.send(200, "text/plain", "1");
 }
 
 void handleNotFound(){
@@ -569,15 +526,7 @@ void setup() {
     while (WiFi.status() != WL_CONNECTED) {
         delay(500);
         Serial.print(".");
-    }
-
-    //If connection successful show IP address in serial monitor
-    Serial.println("");
-    Serial.print("Connected to ");
-    Serial.println(ssid);
-    Serial.print("IP address: ");
-    Serial.println(WiFi.localIP());  //IP address assigned to your ESP
-    Serial.print("MAC Address: ");
+    }    
     mac_address = WiFi.macAddress();
     mac_address.toLowerCase();
     Serial.println(mac_address);
@@ -614,11 +563,21 @@ void setup() {
 
     
 
-    server.on("/", handleRoot);      //Which routine to handle at root location
-    server.on("/", HTTP_GET, handleRoot);        // Call the 'handleRoot' function when a client requests URI "/"
-    server.on("/update_colors", HTTP_POST, handle_update_colors); // Call the 'handleLogin' function when a POST request is made to URI "/login"
-    server.on("/update_timer", HTTP_POST, handle_update_timer); // Call the 'handleLogin' function when a POST request is made to URI "/login"
-    server.onNotFound(handleNotFound);           // When a client requests an unknown URI (i.e. something other than "/"), call function "handleNotFound"
+    server.on("/", handleRoot);
+    server.on("/", HTTP_GET, handleRoot); 
+    server.on("/update_colors", HTTP_POST, handle_update_colors);
+    server.on("/update_timer", HTTP_POST, handle_update_timer);
+    server.on("/leds_on", HTTP_GET, handle_leds_on);
+    server.on("/leds_off", HTTP_GET, handle_leds_off);
+    server.on("/identify", HTTP_GET, handle_identify);
+    server.on(UriBraces("/update_color/{}/{}"), []() {
+        String led = server.pathArg(0);
+        String color = server.pathArg(1);
+        handle_update_color(dstol(led), color);
+
+        // server.send(200, "text/plain", "User: '" + user + "'");
+    });
+    server.onNotFound(handleNotFound);
 
 
     server.begin();                  //Start server
@@ -655,84 +614,32 @@ void loop() {
     curr_minutes = timeClient.getMinutes();
     curr_seconds_since_midnight = seconds_since_midnight(curr_hour, curr_minutes);
 
-    if( curr_seconds_since_midnight != prev_seconds_since_midnight ) {
+    if( use_schedule == 1 && curr_seconds_since_midnight != prev_seconds_since_midnight ) {
         prev_seconds_since_midnight = curr_seconds_since_midnight;
 
         digitalWrite(STATUS_LED_PN, LOW);
-
-        Serial.print("leds_on: ");
-        Serial.println(leds_on);
-        Serial.print("curr_seconds_since_midnight: ");
-        Serial.println(curr_seconds_since_midnight);
-        Serial.print("on_seconds_since_midnight: ");
-        Serial.println(on_seconds_since_midnight);
-        Serial.print("off_seconds_since_midnight: ");
-        Serial.println(off_seconds_since_midnight);
-
-        Serial.print("curr_seconds_since_midnight >= on_seconds_since_midnight && curr_seconds_since_midnight < off_seconds_since_midnight: ");
-        Serial.println(curr_seconds_since_midnight >= on_seconds_since_midnight && 
-            curr_seconds_since_midnight < off_seconds_since_midnight);
-        Serial.print("leds_on == true: ");
-        Serial.println(leds_on == true);
 
         if(
             curr_seconds_since_midnight >= on_seconds_since_midnight && 
             curr_seconds_since_midnight < off_seconds_since_midnight
         ) {
             if( leds_on == false ) {
-                Serial.println("Set leds_on = true");
                 leds_on = true;
                 update_colors = true;
             }
         } else if( leds_on == true ) {
-            Serial.println("Set leds_on = false");
             leds_on = false;
             update_colors = true;
         }
-
-        Serial.print(daysOfTheWeek[timeClient.getDay()]);
-        Serial.print(", ");
-        Serial.print(timeClient.getHours());
-        Serial.print(":");
-        Serial.print(timeClient.getMinutes());
-        Serial.print(":");
-        Serial.println(timeClient.getSeconds());
-
-        Serial.print("leds_on: ");
-        Serial.println(leds_on);
-        Serial.print("update_colors: ");
-        Serial.println(update_colors);
-        Serial.print("IP address: ");
-        Serial.println(WiFi.localIP());  //IP address assigned to your ESP
 
         digitalWrite(STATUS_LED_PN, HIGH);
 
     }
 
-    // pixels.clear(); // Set all pixel colors to 'off'
-    // pixels.show();   // Send the updated pixel colors to the hardware.
+    if( identify == true ) {
+        identify_flash();
+    }
 
-    // delay(DELAYVAL); // Pause before next pass through loop
-    // The first NeoPixel in a strand is #0, second is 1, all the way up
-    // to the count of pixels minus one.
-//     int firstPixelHue = 0;     // First pixel starts at red (hue 0)
-//     for(int a=0; a<30; a++) {  // Repeat 30 times...
-//     for(int b=0; b<3; b++) { //  'b' counts from 0 to 2...
-//       pixels.clear();         //   Set all pixels in RAM to 0 (off)
-//       // 'c' counts up from 'b' to end of pixels in increments of 3...
-//       for(int c=b; c<pixels.numPixels(); c += 3) {
-//         // hue of pixel 'c' is offset by an amount to make one full
-//         // revolution of the color wheel (range 65536) along the length
-//         // of the pixels (pixels.numPixels() steps):
-//         int      hue   = firstPixelHue + c * 65536L / pixels.numPixels();
-//         uint32_t color = pixels.gamma32(pixels.ColorHSV(hue)); // hue -> RGB
-//         pixels.setPixelColor(c, color); // Set pixel 'c' to value 'color'
-//       }
-//       pixels.show();                // Update pixels with new contents
-//       delay(50);                 // Pause for a moment
-//       firstPixelHue += 65536 / 90; // One cycle of color wheel over 90 frames
-//     }
-//   }
     if( update_colors == true ) {
         if( leds_on == true ) {
             Serial.println("Turn ON LEDs");
