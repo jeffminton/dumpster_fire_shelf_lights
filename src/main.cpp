@@ -14,6 +14,8 @@
 #include <Adafruit_NeoPixel.h>
 #include <uri/UriBraces.h>
 #include <uri/UriRegex.h>
+#include <time.h>                   // for time() ctime()
+
 
 #ifdef __AVR__
  #include <avr/power.h> // Required for 16 MHz Adafruit Trinket
@@ -31,6 +33,10 @@
 
 // define the number of bytes you want to access
 #define EEPROM_SIZE (NUMPIXELS * 3) + 4 
+
+/* Configuration of NTP */
+#define MY_NTP_SERVER "pool.ntp.org"           
+#define MY_TZ "EST5EDT,M3.2.0,M11.1.0"
 
 //SSID and Password of your WiFi router
 const char* ssid = "enginerdy";
@@ -54,7 +60,14 @@ EspHtmlTemplateProcessor templateProcessor(&server);
 
 // Define NTP Client to get time
 WiFiUDP ntpUDP;
-NTPClient timeClient(ntpUDP, "pool.ntp.org", utcOffsetInSeconds, ntp_update_delay);
+NTPClient timeClient(ntpUDP, MY_NTP_SERVER, utcOffsetInSeconds, ntp_update_delay);
+
+time_t now;                         // this are the seconds since Epoch (1970) - UTC
+tm tm;                              // the structure tm holds time information in a more convenient way
+
+uint32_t sntp_update_delay_MS_rfc_not_less_than_15000 () {
+    return 5 * 60 * 1000UL; // 5 minutes
+}
 
 // When setting up the NeoPixel library, we tell it how many pixels,
 // and which pin to use to send signals. Note that for older NeoPixel
@@ -84,8 +97,10 @@ int color_array[][3] = {
 int on_hour = -1, on_minutes = -1;
 int off_hour = -1, off_minutes = -1;
 int curr_hour = -1, curr_minutes = -1;
+int new_curr_hour = -1, new_curr_minutes = -1;
 int on_seconds_since_midnight = -1, off_seconds_since_midnight = -1;
 int curr_seconds_since_midnight = -1, prev_seconds_since_midnight = -1;
+int new_curr_seconds_since_midnight = -1, new_prev_seconds_since_midnight = -1;
 int use_schedule = -1;
 
 
@@ -318,6 +333,10 @@ String indexKeyProcessor(const String& key)
         return String(curr_seconds_since_midnight).c_str();
     } else if (key == "PREV_SECONDS_SET") {
         return String(prev_seconds_since_midnight).c_str();
+    } else if (key == "NEW_CURR_SECONDS") {
+        return String(new_curr_seconds_since_midnight).c_str();
+    } else if (key == "NEW_PREV_SECONDS") {
+        return String(new_prev_seconds_since_midnight).c_str();
     } else if (key == "LED_0") {
         return color_to_hex_string(0);
     } else if (key == "LED_1") {
@@ -601,6 +620,8 @@ void setup() {
 
     timeClient.begin();
 
+    configTime(MY_TZ, MY_NTP_SERVER); // --> Here is the IMPORTANT ONE LINER needed in your sketch!
+
     digitalWrite(STATUS_LED_PN, HIGH);
 }
 
@@ -617,6 +638,12 @@ void loop() {
     curr_hour = timeClient.getHours();
     curr_minutes = timeClient.getMinutes();
     curr_seconds_since_midnight = seconds_since_midnight(curr_hour, curr_minutes);
+
+    new_curr_hour = tm.tm_hour;
+    new_curr_minutes = tm.tm_min;
+    new_curr_seconds_since_midnight = seconds_since_midnight(new_curr_hour, new_curr_minutes);
+
+
 
     if( use_schedule == 1 && curr_seconds_since_midnight != prev_seconds_since_midnight ) {
         prev_seconds_since_midnight = curr_seconds_since_midnight;
