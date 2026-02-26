@@ -13,6 +13,7 @@
 #include "index.h" //Our HTML webpage contents
 #include <Adafruit_NeoPixel.h>
 #include <uri/UriBraces.h>
+#include <uri/UriRegex.h>
 
 #ifdef __AVR__
  #include <avr/power.h> // Required for 16 MHz Adafruit Trinket
@@ -460,18 +461,18 @@ void handle_update_color(int led_index, String hex_color_string) {
     String red_str, green_str, blue_str;
     long red, green, blue;
 
-    if( server.hasArg("color") ){
+    // if( server.hasArg("color") ){
 
-        red = hstol(hex_color_string.substring(1, 3));
-        
-        green = hstol(hex_color_string.substring(3, 5));
+    red = hstol(hex_color_string.substring(1, 3));
+    
+    green = hstol(hex_color_string.substring(3, 5));
 
-        blue = hstol(hex_color_string.substring(5, 7));
+    blue = hstol(hex_color_string.substring(5, 7));
 
-        color_array[led_index][0] = red;
-        color_array[led_index][1] = green;
-        color_array[led_index][2] = blue;
-    }
+    color_array[led_index][0] = red;
+    color_array[led_index][1] = green;
+    color_array[led_index][2] = blue;
+    // }
 
     update_colors = true;
     save_led_values();
@@ -570,12 +571,15 @@ void setup() {
     server.on("/leds_on", HTTP_GET, handle_leds_on);
     server.on("/leds_off", HTTP_GET, handle_leds_off);
     server.on("/identify", HTTP_GET, handle_identify);
-    server.on(UriBraces("/update_color/{}/{}"), []() {
+    // server.on(UriBraces("/update_color/{}/{}"), []() {
+    //     String led = server.pathArg(0);
+    //     String color = server.pathArg(1);
+    //     handle_update_color(dstol(led), color);
+    // });
+    server.on(UriRegex("^\\/update_color\\/led\\/([0-9]+)\\/color\\/([0-9a-z]+)$"), []() {
         String led = server.pathArg(0);
         String color = server.pathArg(1);
         handle_update_color(dstol(led), color);
-
-        // server.send(200, "text/plain", "User: '" + user + "'");
     });
     server.onNotFound(handleNotFound);
 
