@@ -19,6 +19,22 @@
                 });
             }
 
+            // Function to update individual LED color via REST endpoint
+            function updateColor(led_number, color) {
+                // Remove the # from the color hex value
+                const colorValue = color.replace('#', '');
+                // Log the request for debugging
+                console.log(`Updating LED ${led_number} to ${colorValue}`);
+                fetch(`/update_color/led/${led_number}/color/${colorValue}`)
+                .then(response => response.text())
+                .then(data => {
+                    console.log(`Updated LED ${led_number} to ${color}:`, data);
+                })
+                .catch(error => {
+                    console.error('Error updating color:', error);
+                });
+            }
+
         </script>
         
         <style>
@@ -107,35 +123,35 @@
                         <div class="container-fluid">
                             <div class="row tab-row">
                                 <div class="col tab-col">
-                                    <input type="color" id="led_six" name="led_six" value="{{LED_6}}" class="form-control color-picker">
+                                    <input type="color" id="led_six" name="led_six" value="{{LED_6}}" class="form-control color-picker" onchange="updateColor(6, this.value)">
                                 </div>
                                 <div class="col tab-col">
-                                    <input type="color" id="led_five" name="led_five" value="{{LED_5}}" class="form-control color-picker">
+                                    <input type="color" id="led_five" name="led_five" value="{{LED_5}}" class="form-control color-picker" onchange="updateColor(5, this.value)">
                                 </div>
                                 <div class="col tab-col">
-                                    <input type="color" id="led_zero" name="led_zero" value="{{LED_0}}" class="form-control color-picker">
-                                </div>
-                            </div>
-                            <div class="row tab-row">
-                                <div class="col tab-col">
-                                    <input type="color" id="led_seven" name="led_seven" value="{{LED_7}}" class="form-control color-picker">
-                                </div>
-                                <div class="col tab-col">
-                                    <input type="color" id="led_four" name="led_four" value="{{LED_4}}" class="form-control color-picker">
-                                </div>
-                                <div class="col tab-col">
-                                    <input type="color" id="led_one" name="led_one" value="{{LED_1}}" class="form-control color-picker">
+                                    <input type="color" id="led_zero" name="led_zero" value="{{LED_0}}" class="form-control color-picker" onchange="updateColor(0, this.value)">
                                 </div>
                             </div>
                             <div class="row tab-row">
                                 <div class="col tab-col">
-                                    <input type="color" id="led_eight" name="led_eight" value="{{LED_8}}" class="form-control color-picker">
+                                    <input type="color" id="led_seven" name="led_seven" value="{{LED_7}}" class="form-control color-picker" onchange="updateColor(7, this.value)">
                                 </div>
                                 <div class="col tab-col">
-                                    <input type="color" id="led_three" name="led_three" value="{{LED_3}}" class="form-control color-picker">
+                                    <input type="color" id="led_four" name="led_four" value="{{LED_4}}" class="form-control color-picker" onchange="updateColor(4, this.value)">
                                 </div>
                                 <div class="col tab-col">
-                                    <input type="color" id="led_two" name="led_two" value="{{LED_2}}" class="form-control color-picker">
+                                    <input type="color" id="led_one" name="led_one" value="{{LED_1}}" class="form-control color-picker" onchange="updateColor(1, this.value)">
+                                </div>
+                            </div>
+                            <div class="row tab-row">
+                                <div class="col tab-col">
+                                    <input type="color" id="led_eight" name="led_eight" value="{{LED_8}}" class="form-control color-picker" onchange="updateColor(8, this.value)">
+                                </div>
+                                <div class="col tab-col">
+                                    <input type="color" id="led_three" name="led_three" value="{{LED_3}}" class="form-control color-picker" onchange="updateColor(3, this.value)">
+                                </div>
+                                <div class="col tab-col">
+                                    <input type="color" id="led_two" name="led_two" value="{{LED_2}}" class="form-control color-picker" onchange="updateColor(2, this.value)">
                                 </div>
                             </div>
                             
